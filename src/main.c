@@ -1,3 +1,8 @@
+/*
+ * Uses termbox2 (MIT License)
+ * https://github.com/termbox/termbox2
+ */
+
 #define TB_IMPL
 #include "termbox2.h"
 
