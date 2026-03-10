@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "proc.h"
+
 int ui_should_quit(struct tb_event *event) {
     tb_poll_event(event);
 
@@ -56,7 +58,13 @@ void ui_draw_memory(double mem_used, double mem_total) {
 }
 
 void ui_draw_process_table(void) {
-    tb_printf(0, 5, 0, 0, "PID     USER     CPU%%    MEM%%    COMMAND");
-    tb_printf(0, 6, 0, 0, "------------------------------------------");
-    tb_printf(0, 7, 0, 0, "1234    aidan    0.0     0.0     proctop");
+    struct process procs[MAX_PROCS];
+    int n = proc_get_list(procs);
+
+    tb_printf(0, 5, 0, 0, "PID    COMMAND");
+    tb_printf(0, 6, 0, 0, "------------------------");
+
+    for (int i = 0; i < n && i < 10; i++) {
+        tb_printf(0, 7 + i, 0, 0, "%d    %s", procs[i].pid, procs[i].command);
+    }
 }
