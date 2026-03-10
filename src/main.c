@@ -6,29 +6,33 @@
 #define TB_IMPL
 #include "termbox2.h"
 
+#include "ui.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 int main(int argc, char **argv) {
+
     struct tb_event ev;
-    int y = 0;
 
-    tb_init();
+    ui_init();
 
-    tb_printf(0, y++, TB_GREEN, 0, "hello from termbox");
-    tb_printf(0, y++, 0, 0, "width=%d height=%d", tb_width(), tb_height());
-    tb_printf(0, y++, 0, 0, "press any key...");
-    tb_present();
+    while (!ui_should_quit()) {
+        
+        ui_clear();
 
-    tb_poll_event(&ev);
-    
-    y++;
-    tb_printf(0, y++, 0, 0, "event type=%d key=%d ch=%c", ev.type, ev.key, ev.ch);
-    tb_printf(0, y++, 0, 0, "press any key to quit...");
-    tb_present();
+        ui_draw_header();
+        ui_draw_cpu(0.0);
+        ui_draw_memory(0.0, 0.0);
+        ui_draw_process_table();
 
-    tb_poll_event(&ev);
-    tb_shutdown();
+        ui_present();
+
+
+    }
+
+    ui_shutdown();
 
     return 0;
 }
