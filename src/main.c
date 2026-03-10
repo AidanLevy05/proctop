@@ -1,4 +1,7 @@
 #include "ui.h"
+#include "system.h"
+
+#include <unistd.h>
 
 int main(void) {
     struct tb_event ev;
@@ -10,7 +13,7 @@ int main(void) {
         ui_clear();
 
         ui_draw_header();
-        ui_draw_cpu(0.0);
+        ui_draw_cpu(get_cpu_usage());
         ui_draw_memory(0.0, 0.0);
         ui_draw_process_table();
         ui_draw_status();
@@ -24,6 +27,7 @@ int main(void) {
                 break;
             }
         }
+        usleep(100000);
     }
 
     ui_shutdown();
