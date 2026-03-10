@@ -1,17 +1,19 @@
 #define TB_IMPL
-#include "termbox2.h"
 #include "ui.h"
 
-static int ui_is_quit_event(struct tb_event *event) {
-    tb_printf(0, 8, TB_WHITE, TB_DEFAULT, "Press 'q' to quit");
-    tb_present();
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
+int ui_should_quit(struct tb_event *event) {
     tb_poll_event(event);
+
     if (event->type == TB_EVENT_KEY) {
         if (event->ch == 'q' || event->key == TB_KEY_ESC) {
             return 1;
         }
     }
+
     return 0;
 }
 
@@ -53,3 +55,8 @@ void ui_draw_memory(double mem_used, double mem_total) {
     tb_printf(0, 3, 0, 0, "MEM: %.2f / %.2f", mem_used, mem_total);
 }
 
+void ui_draw_process_table(void) {
+    tb_printf(0, 5, 0, 0, "PID     USER     CPU%%    MEM%%    COMMAND");
+    tb_printf(0, 6, 0, 0, "------------------------------------------");
+    tb_printf(0, 7, 0, 0, "1234    aidan    0.0     0.0     proctop");
+}
