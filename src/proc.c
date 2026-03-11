@@ -6,73 +6,88 @@
 #include <ctype.h>
 #include <string.h>
 #include <pwd.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 int proc_get_list(struct process *list)
 {
     DIR *dir = opendir("/proc");
     struct dirent *entry;
-
     int count = 0;
+
+    if (!dir)
+        return 0;
 
     while ((entry = readdir(dir)) != NULL)
     {
-        if (!isdigit(entry->d_name[0]))
+        if (!isdigit((unsigned char)entry->d_name[0]))
             continue;
 
-        int pid = atoi(entry->d_name);
+        if (count >= MAX_PROCS)
+            break;
 
+        int pid = atoi(entry->d_name);
         list[count].pid = pid;
+        strcpy(list[count].command, "?");
+        strcpy(list[count].user, "?");
+        list[count].mem_mb = 0.0;
 
         char path[256];
+        FILE *f;
 
-        /* command name */
         sprintf(path, "/proc/%d/comm", pid);
-
-        FILE *f = fopen(path, "r");
-
-        if (f) {
-            fgets(list[count].command, 64, f);
-            list[count].command[strcspn(list[count].command, "\n")] = 0;
+        f = fopen(path, "r");
+        if (f)
+        {
+            if (fgets(list[count].command, sizeof(list[count].command), f))
+                list[count].command[strcspn(list[count].command, "\n")] = '\0';
             fclose(f);
-        } else {
-            strcpy(list[count].command, "?");
         }
 
-        /* user */
         sprintf(path, "/proc/%d/status", pid);
         f = fopen(path, "r");
-
-        if (f) {
-
+        if (f)
+        {
             char line[256];
-            int uid = -1;
+            uid_t uid = (uid_t)-1;
 
-            while (fgets(line, sizeof(line), f)) {
-
-                if (sscanf(line, "Uid: %d", &uid) == 1)
+            while (fgets(line, sizeof(line), f))
+            {
+                if (sscanf(line, "Uid:\t%u", &uid) == 1 || sscanf(line, "Uid: %u", &uid) == 1)
                     break;
             }
 
             fclose(f);
 
-            struct passwd *pw = getpwuid(uid);
+            if (uid != (uid_t)-1)
+            {
+                struct passwd *pw = getpwuid(uid);
+                if (pw)
+                {
+                    strncpy(list[count].user, pw->pw_name, sizeof(list[count].user) - 1);
+                    list[count].user[sizeof(list[count].user) - 1] = '\0';
+                }
+            }
+        }
 
-            if (pw)
-                strncpy(list[count].user, pw->pw_name, 31);
-            else
-                strcpy(list[count].user, "?");
+        sprintf(path, "/proc/%d/statm", pid);
+        f = fopen(path, "r");
+        if (f)
+        {
+            long size, resident;
 
-        } else {
-            strcpy(list[count].user, "?");
+            if (fscanf(f, "%ld %ld", &size, &resident) == 2)
+            {
+                long page_size = sysconf(_SC_PAGESIZE);
+                list[count].mem_mb = (resident * page_size) / (1024.0 * 1024.0);
+            }
+
+            fclose(f);
         }
 
         count++;
-
-        if (count >= MAX_PROCS)
-            break;
     }
 
     closedir(dir);
-
     return count;
 }
