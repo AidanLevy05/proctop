@@ -1,0 +1,57 @@
+.TH PROCTOP 1 "March 11, 2026" "proctop 0.1.0" "User Commands"
+.SH NAME
+proctop \- small terminal process monitor for Linux
+.SH SYNOPSIS
+.B proctop
+[\fB--log\fR \fIfile\fR] [\fIfilter\fR]
+.br
+.B proctop
+\fB--help\fR
+.br
+.B proctop
+\fB--version\fR
+.SH DESCRIPTION
+.B proctop
+reads system and process information from
+.I /proc
+and displays total CPU usage, per-core CPU usage, memory usage, load average,
+and a live process table.
+.PP
+If a
+.I filter
+string is provided, only processes whose displayed command contains that
+substring are shown.
+.SH CONTROLS
+.TP
+.B q
+Quit.
+.TP
+.B Esc
+Quit.
+.TP
+.B r
+Refresh immediately.
+.TP
+.B m
+Sort by memory usage.
+.TP
+.B p
+Sort by process id.
+.TP
+.B c
+Sort by CPU usage.
+.TP
+.B Up / Down
+Move the selected process row.
+.SH OPTIONS
+.TP
+.B --help
+Show help text and exit.
+.TP
+.B --version
+Show version information and exit.
+.TP
+.B --log
+Append visible process snapshots to the given text file.
+.SH AUTHOR
+Written for the proctop project.

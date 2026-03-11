@@ -160,12 +160,17 @@ int proc_get_list(struct process *list)
                         long long proc_time = (long long)utime + stime;
                         long long prev_proc_time = find_prev_proc_time(pid);
 
-                        current_pids[current_count] = pid;
-                        current_proc_times[current_count] = proc_time;
-                        current_count++;
+                        if (current_count < MAX_PROCS) {
+                            current_pids[current_count] = pid;
+                            current_proc_times[current_count] = proc_time;
+                            current_count++;
+                        }
 
-                        if (prev_proc_time >= 0 && prev_total_cpu > 0 && total_cpu_delta > 0)
+                        if (prev_proc_time >= 0 && proc_time >= prev_proc_time &&
+                            prev_total_cpu > 0 && total_cpu_delta > 0)
+                        {
                             list[count].cpu_percent = 100.0 * (proc_time - prev_proc_time) / total_cpu_delta;
+                        }
                     }
                 }
             }

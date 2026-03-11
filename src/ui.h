@@ -9,9 +9,16 @@ void ui_shutdown(void);
 void ui_clear(void);
 void ui_present(void);
 void ui_draw_header(void);
+void ui_draw_system(double cpu_usage, double mem_used, double mem_total,
+                    double load1, double load5, double load15);
+void ui_draw_gpu(double *gpu_usage, double *gpu_mem_used, double *gpu_mem_total, int count);
+void ui_draw_core_cpu(double *cpu_usage, int count);
 void ui_draw_status(void);
 void ui_draw_cpu(double cpu_usage);
 void ui_draw_memory(double mem_used, double mem_total);
 void ui_draw_process_table(void);
+void ui_draw_process_details(void);
+void ui_move_selection(int delta);
+void ui_log_processes(FILE *f);
 
 #endif

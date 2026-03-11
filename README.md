@@ -1,8 +1,8 @@
 # proctop
 
-`proctop` is a small terminal process monitor for Linux. It reads system and
-process data from `/proc` and shows CPU usage, memory usage, and a live process
-table in the terminal.
+`proctop` is a small Linux terminal process monitor. It reads system and
+process information from `/proc` and shows CPU, memory, load average, per-core
+CPU usage, and a live process table.
 
 ## Build
 
@@ -18,7 +18,7 @@ This builds the binary at `src/proctop`.
 ./src/proctop
 ```
 
-If you install the binary somewhere in your `PATH`, you can run:
+If you install the binary in your `PATH`:
 
 ```sh
 proctop
@@ -27,24 +27,22 @@ proctop
 ## Usage
 
 ```sh
-./src/proctop [filter]
+./src/proctop [--log file] [filter]
+proctop [--log file] [filter]
 ```
 
-Installed command usage:
-
-```sh
-proctop [filter]
-```
-
-If `filter` is provided, `proctop` only shows processes whose `COMMAND` value
-contains that substring.
+If `filter` is provided, only processes whose `COMMAND` value contains that
+substring are shown.
 
 Examples:
 
 ```sh
 ./src/proctop
 ./src/proctop chrome
-proctop ssh
+./src/proctop --log proctop.log
+./src/proctop --log proctop.log ssh
+proctop --help
+proctop --version
 ```
 
 ## Controls
@@ -55,12 +53,28 @@ proctop ssh
 - `m` sort by memory
 - `p` sort by pid
 - `c` sort by cpu
+- `Up` move selection up
+- `Down` move selection down
 
-The screen also refreshes automatically once per second.
+The screen refreshes once per second.
+
+## Logging
+
+Use `--log file` to append visible process snapshots to a text file during live
+updates.
+
+## Help And Version
+
+- `proctop --help`
+- `proctop --version`
+
+## Man Page
+
+A basic man page is included as `proctop.1`.
 
 ## Notes
 
-- Process information is read from `/proc`.
+- System and process data is read from `/proc`.
 - The terminal UI uses `termbox2`.
 
 ## Third Party Libraries

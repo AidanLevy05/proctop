@@ -5,6 +5,7 @@
 #define PROC_SORT_MEM 0
 #define PROC_SORT_PID 1
 #define PROC_SORT_CPU 2
+#define PROC_DISPLAY_LIMIT 25
 
 struct process {
     int pid;
