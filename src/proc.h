@@ -6,6 +6,7 @@
 struct process {
     int pid;
     char command[64];
+    char user[32];
 };
 
 int proc_get_list(struct process *list);

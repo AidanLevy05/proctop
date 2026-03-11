@@ -62,10 +62,14 @@ void ui_draw_process_table(void) {
     struct process procs[MAX_PROCS];
     int n = proc_get_list(procs);
 
-    tb_printf(0, 5, 0, 0, "PID    COMMAND");
-    tb_printf(0, 6, 0, 0, "------------------------");
+    tb_printf(0, 5, 0, 0, "PID    USER        COMMAND");
+    tb_printf(0, 6, 0, 0, "---------------------------------------");
 
     for (int i = 0; i < n && i < 10; i++) {
-        tb_printf(0, 7 + i, 0, 0, "%d    %s", procs[i].pid, procs[i].command);
+        tb_printf(0, 7 + i, 0, 0,
+                "%-6d %-10s %s",
+                procs[i].pid,
+                procs[i].user,
+                procs[i].command);
     }
 }
