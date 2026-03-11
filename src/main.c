@@ -20,7 +20,7 @@ int main(void) {
 
         ui_present();
 
-        tb_poll_event(&ev);
+        tb_peek_event(&ev, 0);
 
         if (ev.type == TB_EVENT_KEY) {
             if (ev.ch == 'q' || ev.key == TB_KEY_ESC) {

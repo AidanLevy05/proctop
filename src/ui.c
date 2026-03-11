@@ -51,11 +51,11 @@ void ui_draw_status(void) {
 }
 
 void ui_draw_cpu(double cpu_usage) {
-    tb_printf(0, 2, 0, 0, "CPU: %.2f", cpu_usage);
+    tb_printf(0, 2, 0, 0, "CPU: %.2f%%", cpu_usage);
 }
 
 void ui_draw_memory(double mem_used, double mem_total) {
-    tb_printf(0, 3, 0, 0, "MEM: %.2f / %.2f", mem_used, mem_total);
+    tb_printf(0, 3, 0, 0, "MEM: %.2f / %.2f GB", mem_used, mem_total);
 }
 
 void ui_draw_process_table(void) {
