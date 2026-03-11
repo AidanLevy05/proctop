@@ -16,6 +16,10 @@ static int header_gpu_lines = 0;
 static int header_core_lines = 0;
 static double current_mem_total = 0.0;
 static char current_status_message[128] = "";
+static double current_cpu_history[16];
+static int current_cpu_history_count = 0;
+static int current_cpu_history_index = 0;
+static int current_cpu_history_pid = -1;
 
 static int ui_draw_text(int x, int y, uintattr_t fg, uintattr_t bg, const char *text) {
     tb_printf(x, y, fg, bg, "%s", text);
@@ -45,6 +49,52 @@ static uintattr_t ui_memory_color(double mem_mb) {
     if (ratio >= 0.05)
         return TB_YELLOW | TB_BOLD;
     return TB_GREEN | TB_BOLD;
+}
+
+static void ui_format_uptime(double uptime, char *buf, int size) {
+    int days = (int)(uptime / 86400.0);
+    int hours = ((int)(uptime / 3600.0)) % 24;
+    int mins = ((int)(uptime / 60.0)) % 60;
+
+    if (days > 0)
+        snprintf(buf, size, "%dd %02dh", days, hours);
+    else if (hours > 0)
+        snprintf(buf, size, "%02dh %02dm", hours, mins);
+    else
+        snprintf(buf, size, "%02dm", mins);
+}
+
+static char ui_history_char(double usage) {
+    if (usage >= 80.0)
+        return '#';
+    if (usage >= 60.0)
+        return '*';
+    if (usage >= 40.0)
+        return '+';
+    if (usage >= 20.0)
+        return '-';
+    return '.';
+}
+
+static void ui_update_selected_history(void) {
+    if (current_visible <= 0) {
+        current_cpu_history_pid = -1;
+        current_cpu_history_count = 0;
+        current_cpu_history_index = 0;
+        return;
+    }
+
+    if (current_cpu_history_pid != current_procs[current_selected].pid) {
+        current_cpu_history_pid = current_procs[current_selected].pid;
+        current_cpu_history_count = 0;
+        current_cpu_history_index = 0;
+    }
+
+    current_cpu_history[current_cpu_history_index] = current_procs[current_selected].cpu_percent;
+    current_cpu_history_index = (current_cpu_history_index + 1) % 16;
+
+    if (current_cpu_history_count < 16)
+        current_cpu_history_count++;
 }
 
 int ui_should_quit(struct tb_event *event) {
@@ -86,7 +136,7 @@ void ui_draw_header(void) {
 }
 
 void ui_draw_system(double cpu_usage, double mem_used, double mem_total,
-                    double load1, double load5, double load15) {
+                    double load1, double load5, double load15, double uptime) {
     char buf[64];
     int x = 0;
 
@@ -104,7 +154,12 @@ void ui_draw_system(double cpu_usage, double mem_used, double mem_total,
     x += ui_draw_text(x, 2, TB_DEFAULT, TB_DEFAULT, "  ");
     x += ui_draw_text(x, 2, TB_YELLOW | TB_BOLD, TB_DEFAULT, "LOAD: ");
     snprintf(buf, sizeof(buf), "%.2f %.2f %.2f", load1, load5, load15);
-    ui_draw_text(x, 2, TB_YELLOW, TB_DEFAULT, buf);
+    x += ui_draw_text(x, 2, TB_YELLOW, TB_DEFAULT, buf);
+
+    x += ui_draw_text(x, 2, TB_DEFAULT, TB_DEFAULT, "  ");
+    x += ui_draw_text(x, 2, TB_CYAN | TB_BOLD, TB_DEFAULT, "UP: ");
+    ui_format_uptime(uptime, buf, sizeof(buf));
+    ui_draw_text(x, 2, TB_CYAN, TB_DEFAULT, buf);
 }
 
 void ui_draw_gpu(double *gpu_usage, double *gpu_mem_used, double *gpu_mem_total, int count) {
@@ -188,7 +243,13 @@ void ui_draw_status(void) {
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " pid  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "c");
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " cpu  ");
+    x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "t");
+    x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " tree  ");
+    x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "/");
+    x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " search  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "K");
+    x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " term  ");
+    x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "X");
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " kill  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "up/down");
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " move  ");
@@ -260,6 +321,8 @@ void ui_draw_process_table(void) {
     else if (current_selected >= current_visible)
         current_selected = current_visible - 1;
 
+    ui_update_selected_history();
+
     tb_printf(0, y, TB_CYAN | TB_BOLD, TB_DEFAULT, "PID    USER        CPU%%   MEM(MB)   COMMAND");
     tb_printf(0, y + 1, TB_CYAN, TB_DEFAULT, "------------------------------------------------");
 
@@ -292,7 +355,13 @@ void ui_draw_process_table(void) {
         snprintf(buf, sizeof(buf), "%8.1f MB", current_procs[i].mem_mb);
         ui_draw_text(25, row_y, ui_memory_color(current_procs[i].mem_mb), bg, buf);
 
-        ui_draw_text(38, row_y, fg, bg, current_procs[i].command);
+        buf[0] = '\0';
+
+        for (int j = 0; j < current_procs[i].tree_level && j < 10; j++)
+            strcat(buf, "  ");
+
+        strncat(buf, current_procs[i].command, sizeof(buf) - strlen(buf) - 1);
+        ui_draw_text(38, row_y, fg, bg, buf);
     }
 }
 
@@ -319,8 +388,23 @@ void ui_draw_process_details(void) {
     tb_printf(50, y, TB_MAGENTA | TB_BOLD, TB_DEFAULT, "MEM: ");
     tb_printf(55, y, ui_memory_color(current_procs[current_selected].mem_mb), TB_DEFAULT, "%.1f MB",
               current_procs[current_selected].mem_mb);
-    tb_printf(0, y + 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "COMMAND: ");
-    tb_printf(9, y + 1, TB_DEFAULT, TB_DEFAULT, "%s", current_procs[current_selected].command);
+    tb_printf(0, y + 1, TB_YELLOW | TB_BOLD, TB_DEFAULT, "STATE: ");
+    tb_printf(7, y + 1, TB_DEFAULT, TB_DEFAULT, "%c", current_procs[current_selected].state);
+    tb_printf(11, y + 1, TB_YELLOW | TB_BOLD, TB_DEFAULT, "THREADS: ");
+    tb_printf(20, y + 1, TB_DEFAULT, TB_DEFAULT, "%d", current_procs[current_selected].threads);
+    tb_printf(25, y + 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "COMMAND: ");
+    tb_printf(34, y + 1, TB_DEFAULT, TB_DEFAULT, "%s", current_procs[current_selected].command);
+
+    tb_printf(0, y + 2, TB_CYAN | TB_BOLD, TB_DEFAULT, "HIST: ");
+
+    for (int i = 0; i < current_cpu_history_count; i++) {
+        int index = (current_cpu_history_index + i) % current_cpu_history_count;
+        char c[2];
+
+        c[0] = ui_history_char(current_cpu_history[index]);
+        c[1] = '\0';
+        ui_draw_text(6 + i, y + 2, ui_usage_color(current_cpu_history[index]), TB_DEFAULT, c);
+    }
 }
 
 void ui_log_processes(FILE *f) {

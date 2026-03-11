@@ -121,6 +121,20 @@ int get_load_average(double *load1, double *load5, double *load15) {
     return 1;
 }
 
+double get_uptime(void) {
+    FILE *f = fopen("/proc/uptime", "r");
+    double uptime = 0.0;
+
+    if (!f)
+        return 0.0;
+
+    if (fscanf(f, "%lf", &uptime) != 1)
+        uptime = 0.0;
+
+    fclose(f);
+    return uptime;
+}
+
 double get_memory_total() {
     FILE *f = fopen("/proc/meminfo", "r");
     if (!f) return 0;

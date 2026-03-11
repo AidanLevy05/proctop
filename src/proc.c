@@ -32,6 +32,7 @@ static long long prev_proc_times[MAX_PROCS];
 static int prev_count = 0;
 static long long prev_total_cpu = 0;
 static int proc_sort_mode = PROC_SORT_MEM;
+static int proc_tree_mode = 0;
 static char proc_filter[64] = "";
 
 int compare_mem_desc(const void *a, const void *b) {
@@ -61,6 +62,57 @@ int compare_cpu_desc(const void *a, const void *b) {
     return compare_mem_desc(a, b);
 }
 
+int find_process_index(struct process *list, int count, int pid)
+{
+    for (int i = 0; i < count; i++) {
+        if (list[i].pid == pid)
+            return i;
+    }
+
+    return -1;
+}
+
+void append_process_subtree(struct process *list, int count, struct process *ordered,
+                            int *ordered_count, int *used, int index, int level)
+{
+    if (*ordered_count >= count)
+        return;
+
+    used[index] = 1;
+    list[index].tree_level = level;
+    ordered[*ordered_count] = list[index];
+    (*ordered_count)++;
+
+    for (int i = 0; i < count; i++) {
+        if (!used[i] && list[i].ppid == list[index].pid)
+            append_process_subtree(list, count, ordered, ordered_count, used, i, level + 1);
+    }
+}
+
+void build_process_tree(struct process *list, int count)
+{
+    static struct process ordered[MAX_PROCS];
+    int ordered_count = 0;
+    int used[MAX_PROCS];
+
+    memset(used, 0, sizeof(used));
+
+    for (int i = 0; i < count; i++) {
+        if (list[i].ppid == 0 || list[i].ppid == list[i].pid ||
+            find_process_index(list, count, list[i].ppid) < 0)
+        {
+            append_process_subtree(list, count, ordered, &ordered_count, used, i, 0);
+        }
+    }
+
+    for (int i = 0; i < count; i++) {
+        if (!used[i])
+            append_process_subtree(list, count, ordered, &ordered_count, used, i, 0);
+    }
+
+    memcpy(list, ordered, ordered_count * sizeof(struct process));
+}
+
 long long find_prev_proc_time(int pid)
 {
     for (int i = 0; i < prev_count; i++) {
@@ -75,6 +127,11 @@ void proc_set_sort_mode(int mode)
 {
     if (mode == PROC_SORT_MEM || mode == PROC_SORT_PID || mode == PROC_SORT_CPU)
         proc_sort_mode = mode;
+}
+
+void proc_set_tree_mode(int enabled)
+{
+    proc_tree_mode = enabled ? 1 : 0;
 }
 
 void proc_set_filter(const char *filter)
@@ -112,8 +169,12 @@ int proc_get_list(struct process *list)
 
         int pid = atoi(entry->d_name);
         list[count].pid = pid;
+        list[count].ppid = 0;
+        list[count].threads = 0;
+        list[count].tree_level = 0;
         strcpy(list[count].command, "?");
         strcpy(list[count].user, "?");
+        list[count].state = '?';
         list[count].mem_mb = 0.0;
         list[count].cpu_percent = 0.0;
 
@@ -144,8 +205,15 @@ int proc_get_list(struct process *list)
 
                 if (rest)
                 {
+                    char state;
+                    int ppid;
                     unsigned long utime, stime;
                     int field = 3;
+
+                    if (sscanf(rest, " %c %d", &state, &ppid) == 2) {
+                        list[count].ppid = ppid;
+                        list[count].state = state;
+                    }
 
                     rest++;
 
@@ -188,7 +256,17 @@ int proc_get_list(struct process *list)
             while (fgets(line, sizeof(line), f))
             {
                 if (sscanf(line, "Uid:\t%u", &uid) == 1 || sscanf(line, "Uid: %u", &uid) == 1)
-                    break;
+                    continue;
+                if (sscanf(line, "Threads:\t%d", &list[count].threads) == 1 ||
+                    sscanf(line, "Threads: %d", &list[count].threads) == 1)
+                {
+                    continue;
+                }
+                if (sscanf(line, "State:\t%c", &list[count].state) == 1 ||
+                    sscanf(line, "State: %c", &list[count].state) == 1)
+                {
+                    continue;
+                }
             }
 
             fclose(f);
@@ -229,7 +307,11 @@ int proc_get_list(struct process *list)
     prev_count = current_count;
     prev_total_cpu = total_cpu_now;
 
-    if (proc_sort_mode == PROC_SORT_PID)
+    if (proc_tree_mode) {
+        qsort(list, count, sizeof(struct process), compare_pid_asc);
+        build_process_tree(list, count);
+    }
+    else if (proc_sort_mode == PROC_SORT_PID)
         qsort(list, count, sizeof(struct process), compare_pid_asc);
     else if (proc_sort_mode == PROC_SORT_CPU)
         qsort(list, count, sizeof(struct process), compare_cpu_desc);

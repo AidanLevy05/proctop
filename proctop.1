@@ -14,20 +14,24 @@ proctop \- small terminal process monitor for Linux
 .B proctop
 reads system and process information from
 .I /proc
-and displays total CPU usage, per-core CPU usage, memory usage, load average,
-and a live process table.
+and displays CPU usage, per-core CPU usage, memory usage, uptime, load average,
+GPU information when available, and a live process table.
 .PP
 If a
 .I filter
 string is provided, only processes whose displayed command contains that
 substring are shown.
+.PP
+Tree mode may be toggled inside the UI. Search mode may be started inside the
+UI and applies the same command substring filter logic used by the startup
+argument.
 .SH CONTROLS
 .TP
 .B q
 Quit.
 .TP
 .B Esc
-Quit.
+Quit, or cancel search mode.
 .TP
 .B r
 Refresh immediately.
@@ -41,8 +45,23 @@ Sort by process id.
 .B c
 Sort by CPU usage.
 .TP
+.B t
+Toggle process tree mode.
+.TP
+.B /
+Start interactive search mode.
+.TP
 .B Up / Down
 Move the selected process row.
+.TP
+.B K
+Start SIGTERM confirmation for the selected process.
+.TP
+.B X
+Start SIGKILL confirmation for the selected process.
+.TP
+.B Y / N
+Confirm or cancel an active terminate/kill prompt.
 .SH OPTIONS
 .TP
 .B --help
