@@ -46,11 +46,12 @@ void ui_draw_header(void) {
 }
 
 void ui_draw_status(void) {
-    tb_printf(0, 8, 0, 0, "Press Q or Esc to quit");
+    tb_printf(0, 20, 0, 0, "Press Q or Esc to quit");
 }
 
 void ui_draw_cpu(double cpu_usage) {
-    tb_printf(0, 2, 0, 0, "CPU: %.2f", cpu_usage);
+    int h = tb_height();
+    tb_printf(0, h - 1, 0, 0, "CPU: %.2f", cpu_usage);
 }
 
 void ui_draw_memory(double mem_used, double mem_total) {
