@@ -47,7 +47,7 @@ void ui_draw_header(void) {
 
 void ui_draw_status(void) {
     int h = tb_height();
-    tb_printf(0, h - 1, 0, 0, "Press Q or Esc to quit");
+    tb_printf(0, h - 1, 0, 0, "q quit  r refresh  m mem  p pid  c cpu  esc quit");
 }
 
 void ui_draw_cpu(double cpu_usage) {
@@ -62,14 +62,15 @@ void ui_draw_process_table(void) {
     struct process procs[MAX_PROCS];
     int n = proc_get_list(procs);
 
-    tb_printf(0, 5, 0, 0, "PID    USER        MEM(MB)   COMMAND");
-    tb_printf(0, 6, 0, 0, "---------------------------------------");
+    tb_printf(0, 5, 0, 0, "PID    USER        CPU%%   MEM(MB)   COMMAND");
+    tb_printf(0, 6, 0, 0, "------------------------------------------------");
 
     for (int i = 0; i < n && i < 25; i++) {
         tb_printf(0, 7 + i, 0, 0,
-                "%-6d %-10s %8.1f MB  %s",
+                "%-6d %-10s %5.1f%% %8.1f MB  %s",
                 procs[i].pid,
                 procs[i].user,
+                procs[i].cpu_percent,
                 procs[i].mem_mb,
                 procs[i].command);
     }

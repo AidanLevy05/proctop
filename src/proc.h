@@ -2,6 +2,9 @@
 #define PROC_H
 
 #define MAX_PROCS 4096
+#define PROC_SORT_MEM 0
+#define PROC_SORT_PID 1
+#define PROC_SORT_CPU 2
 
 struct process {
     int pid;
@@ -11,6 +14,8 @@ struct process {
     double cpu_percent;
 };
 
+void proc_set_sort_mode(int mode);
+void proc_set_filter(const char *filter);
 int proc_get_list(struct process *list);
 
 #endif
