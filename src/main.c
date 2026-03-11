@@ -14,7 +14,7 @@ int main(void) {
 
         ui_draw_header();
         ui_draw_cpu(get_cpu_usage());
-        ui_draw_memory(0.0, 0.0);
+        ui_draw_memory(get_memory_used(), get_memory_total());
         ui_draw_process_table();
         ui_draw_status();
 
