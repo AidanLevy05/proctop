@@ -9,6 +9,15 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+int compare_mem_desc(const void *a, const void *b) {
+    const struct process *pa = a;
+    const struct process *pb = b;
+
+    if (pb->mem_mb > pa->mem_mb) return 1;
+    if (pb->mem_mb < pa->mem_mb) return -1;
+    return 0;
+}
+
 int proc_get_list(struct process *list)
 {
     DIR *dir = opendir("/proc");
@@ -89,5 +98,6 @@ int proc_get_list(struct process *list)
     }
 
     closedir(dir);
+    qsort(list, count, sizeof(struct process), compare_mem_desc);
     return count;
 }
