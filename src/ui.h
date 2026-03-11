@@ -19,6 +19,9 @@ void ui_draw_memory(double mem_used, double mem_total);
 void ui_draw_process_table(void);
 void ui_draw_process_details(void);
 void ui_move_selection(int delta);
+int ui_get_selected_pid(void);
+void ui_set_status_message(const char *message);
+void ui_clear_status_message(void);
 void ui_log_processes(FILE *f);
 
 #endif

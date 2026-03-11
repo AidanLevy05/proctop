@@ -2,6 +2,7 @@
 #include "proc.h"
 #include "system.h"
 
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -26,6 +27,7 @@ void print_help(void) {
     printf("  m            Sort by memory.\n");
     printf("  p            Sort by pid.\n");
     printf("  c            Sort by cpu.\n");
+    printf("  K            Kill selected process.\n");
     printf("  Up/Down      Move selected process.\n");
 }
 
@@ -49,6 +51,8 @@ void log_snapshot(FILE *log_file) {
 int main(int argc, char **argv) {
     struct tb_event ev;
     int refresh = 1;
+    int confirm_kill = 0;
+    int kill_pid = -1;
     char *log_path = NULL;
     char *filter = NULL;
     FILE *log_file = NULL;
@@ -150,38 +154,82 @@ int main(int argc, char **argv) {
         }
 
         if (ev.type == TB_EVENT_KEY) {
+            if (confirm_kill) {
+                if ((ev.ch == 'Y' || ev.ch == 'y') && kill_pid > 0) {
+                    if (kill(kill_pid, SIGTERM) != 0) {
+                        char message[128];
+
+                        snprintf(message, sizeof(message), "Failed to terminate PID %d", kill_pid);
+                        ui_set_status_message(message);
+                    } else {
+                        ui_clear_status_message();
+                    }
+                } else {
+                    ui_clear_status_message();
+                }
+
+                confirm_kill = 0;
+                kill_pid = -1;
+                refresh = 1;
+                continue;
+            }
+
             if (ev.ch == 'q' || ev.key == TB_KEY_ESC) {
                 break;
             }
             if (ev.ch == 'r') {
+                ui_clear_status_message();
                 refresh = 1;
                 continue;
             }
             if (ev.ch == 'm') {
+                ui_clear_status_message();
                 proc_set_sort_mode(PROC_SORT_MEM);
                 refresh = 1;
                 continue;
             }
             if (ev.ch == 'p') {
+                ui_clear_status_message();
                 proc_set_sort_mode(PROC_SORT_PID);
                 refresh = 1;
                 continue;
             }
             if (ev.ch == 'c') {
+                ui_clear_status_message();
                 proc_set_sort_mode(PROC_SORT_CPU);
                 refresh = 1;
                 continue;
             }
+            if (ev.ch == 'K') {
+                kill_pid = ui_get_selected_pid();
+
+                if (kill_pid > 0) {
+                    char message[128];
+
+                    confirm_kill = 1;
+                    snprintf(message, sizeof(message), "Kill PID %d? (Y/N)", kill_pid);
+                    ui_set_status_message(message);
+                } else {
+                    ui_set_status_message("No process selected");
+                }
+
+                refresh = 1;
+                continue;
+            }
             if (ev.key == TB_KEY_ARROW_UP) {
+                ui_clear_status_message();
                 ui_move_selection(-1);
                 refresh = 1;
                 continue;
             }
             if (ev.key == TB_KEY_ARROW_DOWN) {
+                ui_clear_status_message();
                 ui_move_selection(1);
                 refresh = 1;
                 continue;
             }
+
+            ui_clear_status_message();
         }
 
         refresh = 1;

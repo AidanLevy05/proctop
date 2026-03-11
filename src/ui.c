@@ -15,6 +15,7 @@ static int current_selected = 0;
 static int header_gpu_lines = 0;
 static int header_core_lines = 0;
 static double current_mem_total = 0.0;
+static char current_status_message[128] = "";
 
 static int ui_draw_text(int x, int y, uintattr_t fg, uintattr_t bg, const char *text) {
     tb_printf(x, y, fg, bg, "%s", text);
@@ -172,6 +173,11 @@ void ui_draw_status(void) {
     if (h <= 0)
         return;
 
+    if (current_status_message[0] != '\0') {
+        ui_draw_text(0, h - 1, TB_YELLOW | TB_BOLD, TB_DEFAULT, current_status_message);
+        return;
+    }
+
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "q");
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " quit  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "r");
@@ -182,6 +188,8 @@ void ui_draw_status(void) {
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " pid  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "c");
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " cpu  ");
+    x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "K");
+    x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " kill  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "up/down");
     x += ui_draw_text(x, h - 1, TB_YELLOW, TB_DEFAULT, " move  ");
     x += ui_draw_text(x, h - 1, TB_CYAN | TB_BOLD, TB_DEFAULT, "esc");
@@ -208,6 +216,27 @@ void ui_move_selection(int delta) {
         current_selected = 0;
     if (current_selected >= current_visible)
         current_selected = current_visible - 1;
+}
+
+int ui_get_selected_pid(void) {
+    if (current_visible <= 0)
+        return -1;
+
+    return current_procs[current_selected].pid;
+}
+
+void ui_set_status_message(const char *message) {
+    if (!message) {
+        current_status_message[0] = '\0';
+        return;
+    }
+
+    strncpy(current_status_message, message, sizeof(current_status_message) - 1);
+    current_status_message[sizeof(current_status_message) - 1] = '\0';
+}
+
+void ui_clear_status_message(void) {
+    current_status_message[0] = '\0';
 }
 
 void ui_draw_process_table(void) {
