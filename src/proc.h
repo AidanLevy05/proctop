@@ -8,6 +8,7 @@ struct process {
     char command[64];
     char user[32];
     double mem_mb;
+    double cpu_percent;
 };
 
 int proc_get_list(struct process *list);

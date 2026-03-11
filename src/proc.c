@@ -9,6 +9,29 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+long long get_total_cpu_time(void) {
+    FILE *f = fopen("/proc/stat", "r");
+    long long user, nice, system, idle, iowait, irq, softirq, steal;
+    long long total = 0;
+
+    if (!f)
+        return 0;
+
+    if (fscanf(f, "cpu %lld %lld %lld %lld %lld %lld %lld %lld",
+               &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) == 8)
+    {
+        total = user + nice + system + idle + iowait + irq + softirq + steal;
+    }
+
+    fclose(f);
+    return total;
+}
+
+static int prev_pids[MAX_PROCS];
+static long long prev_proc_times[MAX_PROCS];
+static int prev_count = 0;
+static long long prev_total_cpu = 0;
+
 int compare_mem_desc(const void *a, const void *b) {
     const struct process *pa = a;
     const struct process *pb = b;
@@ -16,6 +39,16 @@ int compare_mem_desc(const void *a, const void *b) {
     if (pb->mem_mb > pa->mem_mb) return 1;
     if (pb->mem_mb < pa->mem_mb) return -1;
     return 0;
+}
+
+long long find_prev_proc_time(int pid)
+{
+    for (int i = 0; i < prev_count; i++) {
+        if (prev_pids[i] == pid)
+            return prev_proc_times[i];
+    }
+
+    return -1;
 }
 
 int proc_get_list(struct process *list)
@@ -40,6 +73,7 @@ int proc_get_list(struct process *list)
         strcpy(list[count].command, "?");
         strcpy(list[count].user, "?");
         list[count].mem_mb = 0.0;
+        list[count].cpu_percent = 0.0;
 
         char path[256];
         FILE *f;
